@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentCommerce — AI Buying Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: rgba(99, 102, 241, 0.15);
+            --bg: #0b0f19;
+            --surface: #131b2e;
+            --surface-card: #1c2642;
+            --surface-border: #263352;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at 10% 20%, #151e36 0%, #080c16 90%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .widget-shell {
+            width: 100%;
+            max-width: 860px;
+            height: 90vh;
+            max-height: 900px;
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 20px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(99, 102, 241, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Header */
+        .widget-header {
+            padding: 18px 24px;
+            background: rgba(19, 27, 46, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--surface-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #fff 40%, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .badge-capsule {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-light);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 0.78rem;
+            color: #c7d2fe;
+            font-weight: 500;
+        }
+
+        /* Messages Area */
+        .messages-container {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #253353;
+            border-radius: 4px;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 82%;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-row.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.agent {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            word-wrap: break-word;
+        }
+
+        .user .msg-bubble {
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .agent .msg-bubble {
+            background: var(--surface-card);
+            color: var(--text-main);
+            border: 1px solid var(--surface-border);
+            border-bottom-left-radius: 4px;
+            white-space: pre-wrap;
+        }
+
+        /* Reasoning Trace Collapsible */
+        .trace-card {
+            margin-top: 8px;
+            width: 100%;
+            background: #0d1322;
+            border: 1px solid #202b46;
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 0.82rem;
+        }
+
+        .trace-header {
+            padding: 8px 12px;
+            background: #141c30;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .trace-header:hover {
+            background: #1a2540;
+            color: #cbd5e1;
+        }
+
+        .trace-content {
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.76rem;
+            color: #38bdf8;
+            white-space: pre-wrap;
+            border-top: 1px solid #202b46;
+            line-height: 1.4;
+            max-height: 250px;
+            overflow-y: auto;
+            background: #080d18;
+            display: none;
+        }
+
+        /* Quick Suggestion Chips */
+        .chips-container {
+            display: flex;
+            gap: 8px;
+            padding: 8px 24px 12px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .chips-container::-webkit-scrollbar { display: none; }
+
+        .chip-btn {
+            background: var(--surface-card);
+            border: 1px solid var(--surface-border);
+            color: #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .chip-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Bottom Input Bar */
+        .input-bar {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-top: 1px solid var(--surface-border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: #0c1220;
+            border: 1px solid var(--surface-border);
+            color: white;
+            padding: 13px 18px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-bar input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        .send-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 13px 22px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .send-btn:disabled {
+            background: #334155;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+            padding: 6px 12px;
+        }
+
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: #818cf8;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+            40% { transform: translateY(-6px); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-shell">
+        <!-- Top Header -->
+        <header class="widget-header">
+            <div class="header-brand">
+                <div class="status-dot"></div>
+                <div>
+                    <h1 class="brand-title">AgentCommerce Assistant</h1>
+                    <p class="brand-subtitle">Gated ReAct AI Agent • Razorpay Test Payments</p>
+                </div>
+            </div>
+            <div class="badge-capsule">
+                <span>🛡️ Policy Gated</span>
+                <span>•</span>
+                <span id="session-badge">Session: Initializing...</span>
+            </div>
+        </header>
+
+        <!-- Chat Conversation Area -->
+        <main class="messages-container" id="chat-messages">
+            <div class="msg-row agent">
+                <div class="msg-bubble">
+                    👋 <strong>Welcome to AgentCommerce!</strong>
+I am an autonomous shopping assistant powered by <strong>Gemini 3.7 Flash</strong> with direct tool-calling into the merchant's catalog and Razorpay checkout engine.
+
+How can I help you today? You can search products, inspect specs, review your cart, or proceed with purchase.
+                </div>
+            </div>
+        </main>
+
+        <!-- Suggestion Chips -->
+        <div class="chips-container">
+            <button class="chip-btn" onclick="sendPrompt('Find running shoes under ₹3000')">👟 Running shoes under ₹3000</button>
+            <button class="chip-btn" onclick="sendPrompt('Show noise cancelling headphones')">🎧 Noise cancelling headphones</button>
+            <button class="chip-btn" onclick="sendPrompt('What items are in my cart?')">🛒 Review cart</button>
+            <button class="chip-btn" onclick="sendPrompt('Checkout my cart')">⚡ Checkout order</button>
+        </div>
+
+        <!-- Input Bar -->
+        <footer class="input-bar">
+            <input type="text" id="chat-input" placeholder="Ask about products, add to cart, or confirm checkout..." autocomplete="off" onkeydown="handleKey(event)">
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                <span>Send</span>
+                <span>➔</span>
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        // Generate or retain persistent session
+        let sessionId = localStorage.getItem("agentcommerce_session");
+        if (!sessionId) {
+            sessionId = "human_" + Math.random().toString(36).substring(2, 10);
+            localStorage.setItem("agentcommerce_session", sessionId);
+        }
+        document.getElementById("session-badge").innerText = sessionId;
+
+        const messagesDiv = document.getElementById("chat-messages");
+        const inputField = document.getElementById("chat-input");
+        const sendBtn = document.getElementById("send-btn");
+
+        function sendPrompt(text) {
+            inputField.value = text;
+            sendMessage();
+        }
+
+        function appendMessage(text, isUser, trace = null) {
+            const row = document.createElement("div");
+            row.className = `msg-row ${isUser ? 'user' : 'agent'}`;
+
+            const bubble = document.createElement("div");
+            bubble.className = "msg-bubble";
+            bubble.innerText = text;
+            row.appendChild(bubble);
+
+            if (trace && trace.length > 0) {
+                const traceCard = document.createElement("div");
+                traceCard.className = "trace-card";
+
+                const traceHeader = document.createElement("div");
+                traceHeader.className = "trace-header";
+                traceHeader.innerHTML = `<span>🧠 Agent Reasoning Trace (${trace.length} actions)</span><span>▼</span>`;
+
+                const traceContent = document.createElement("div");
+                traceContent.className = "trace-content";
+                traceContent.innerText = trace.join("\n\n---\n\n");
+
+                traceHeader.onclick = () => {
+                    const isVisible = traceContent.style.display === "block";
+                    traceContent.style.display = isVisible ? "none" : "block";
+                    traceHeader.querySelector("span:last-child").innerText = isVisible ? "▼" : "▲";
+                };
+
+                traceCard.appendChild(traceHeader);
+                traceCard.appendChild(traceContent);
+                row.appendChild(traceCard);
+            }
+
+            messagesDiv.appendChild(row);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = inputField.value.trim();
+            if (!message) return;
+
+            appendMessage(message, true);
+            inputField.value = "";
+            inputField.disabled = true;
+            sendBtn.disabled = true;
+
+            // Loading indicator
+            const loadingRow = document.createElement("div");
+            loadingRow.className = "msg-row agent";
+            loadingRow.id = "typing-loader";
+            loadingRow.innerHTML = `<div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+            messagesDiv.appendChild(loadingRow);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const res = await fetch("/agent/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        message: message
+                    })
+                });
+                
+                const loader = document.getElementById("typing-loader");
+                if (loader) loader.remove();
+
+                if (!res.ok) {
+                    throw new Error(`Server returned HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                appendMessage(data.response, false, data.trace);
+            } catch (err) {
+                const loader = document.getElementById("typing-loader");
+                if (loader) loader.remove();
+                appendMessage(`⚠️ Connection error: Could not reach agent endpoint (${err.message}). Is the FastAPI server running?`, false);
+            } finally {
+                inputField.disabled = false;
+                sendBtn.disabled = false;
+                inputField.focus();
+            }
+        }
+
+        function handleKey(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>

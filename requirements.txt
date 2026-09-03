@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pydantic>=2.7.0
+pydantic-settings
+sqlalchemy
+chromadb
+sentence-transformers
+langchain
+langchain-google-genai
+razorpay
+streamlit
+pandas
+python-dotenv
+langgraph

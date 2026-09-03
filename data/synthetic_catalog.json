@@ -1,0 +1,92 @@
+[
+  {
+    "id": "prod_001",
+    "name": "Waterproof Running Shoe",
+    "description": "High-performance waterproof running shoe for all terrains.",
+    "category": "Footwear",
+    "price": 2500.0,
+    "stock": 50,
+    "attributes": {"color": "black", "sizes": ["8", "9", "10"]}
+  },
+  {
+    "id": "prod_002",
+    "name": "Wireless Noise Cancelling Headphones",
+    "description": "Over-ear headphones with active noise cancellation.",
+    "category": "Electronics",
+    "price": 8999.0,
+    "stock": 20,
+    "attributes": {"color": "silver", "battery_life": "30h"}
+  },
+  {
+    "id": "prod_003",
+    "name": "Ergonomic Office Chair",
+    "description": "Comfortable mesh office chair with lumbar support.",
+    "category": "Furniture",
+    "price": 4500.0,
+    "stock": 10,
+    "attributes": {"color": "black", "material": "mesh"}
+  },
+  {
+    "id": "prod_004",
+    "name": "Organic Green Tea",
+    "description": "Premium organic green tea leaves from Assam.",
+    "category": "Groceries",
+    "price": 450.0,
+    "stock": 100,
+    "attributes": {"weight": "250g", "type": "loose leaf"}
+  },
+  {
+    "id": "prod_005",
+    "name": "Smart Fitness Band",
+    "description": "Fitness tracker with heart rate monitor and step counter.",
+    "category": "Electronics",
+    "price": 1999.0,
+    "stock": 40,
+    "attributes": {"color": "blue", "waterproof": true}
+  },
+  {
+    "id": "prod_006",
+    "name": "Stainless Steel Water Bottle",
+    "description": "Insulated water bottle that keeps drinks cold for 24 hours.",
+    "category": "Accessories",
+    "price": 800.0,
+    "stock": 60,
+    "attributes": {"capacity": "1L", "color": "red"}
+  },
+  {
+    "id": "prod_007",
+    "name": "Mechanical Gaming Keyboard",
+    "description": "RGB mechanical keyboard with blue switches.",
+    "category": "Electronics",
+    "price": 3200.0,
+    "stock": 15,
+    "attributes": {"switches": "blue", "backlight": "RGB"}
+  },
+  {
+    "id": "prod_008",
+    "name": "Yoga Mat",
+    "description": "Non-slip yoga mat with carrying strap.",
+    "category": "Fitness",
+    "price": 600.0,
+    "stock": 80,
+    "attributes": {"thickness": "6mm", "color": "purple"}
+  },
+  {
+    "id": "prod_009",
+    "name": "Leather Wallet",
+    "description": "Genuine leather bifold wallet with RFID protection.",
+    "category": "Accessories",
+    "price": 1200.0,
+    "stock": 35,
+    "attributes": {"material": "leather", "color": "brown"}
+  },
+  {
+    "id": "prod_010",
+    "name": "Desk Lamp",
+    "description": "LED desk lamp with adjustable brightness and color temperature.",
+    "category": "Furniture",
+    "price": 1500.0,
+    "stock": 25,
+    "attributes": {"power": "10W", "color": "white"}
+  }
+]
