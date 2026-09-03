@@ -1,4 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import time
+import hmac
+import hashlib
+import json
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -15,6 +20,9 @@ from app.agent.tools import (
 
 router = APIRouter(tags=["interop"])
 
+DEFAULT_HMAC_SECRET = os.getenv("AP2_HMAC_SECRET", "agentcommerce_secret_2026")
+REQUIRE_HMAC_AUTH = os.getenv("REQUIRE_HMAC_AUTH", "false").lower() == "true"
+
 @router.get("/.well-known/agent-commerce.json")
 def get_manifest():
     """
@@ -30,6 +38,12 @@ def get_manifest():
             "country": "IN"
         },
         "protocols": ["AgentCommerce-v1", "ACP-compatible", "AP2-gated"],
+        "security": {
+            "auth_type": "HMAC-SHA256",
+            "signature_header": "X-Signature-SHA256",
+            "timestamp_header": "X-Timestamp",
+            "max_skew_seconds": 300
+        },
         "endpoints": {
             "discovery": "/.well-known/agent-commerce.json",
             "execute": "/interop/execute"
@@ -94,17 +108,62 @@ def get_manifest():
         }
     }
 
+
+def verify_hmac_signature(body_bytes: bytes, signature: Optional[str], timestamp: Optional[str]) -> tuple[bool, str]:
+    """
+    Validates HMAC-SHA256 request signature and prevents replay attacks.
+    Format: HMAC_SHA256(secret, timestamp + '.' + body)
+    """
+    if not signature or not timestamp:
+        return False, "Missing required security headers (X-Signature-SHA256 or X-Timestamp)."
+
+    # Replay protection: Check timestamp skew (within 300 seconds / 5 mins)
+    try:
+        ts = float(timestamp)
+        now = time.time()
+        if abs(now - ts) > 300:
+            return False, f"Request timestamp expired (skew: {abs(now - ts):.1f}s, max allowed: 300s)."
+    except ValueError:
+        return False, "Invalid timestamp format in X-Timestamp header."
+
+    # Compute expected signature
+    secret_bytes = DEFAULT_HMAC_SECRET.encode("utf-8")
+    payload = f"{timestamp}.".encode("utf-8") + body_bytes
+    expected_sig = hmac.new(secret_bytes, payload, hashlib.sha256).hexdigest()
+
+    if not hmac.compare_digest(expected_sig, signature):
+        return False, "HMAC signature mismatch. Request payload or secret is invalid."
+
+    return True, "Signature verified."
+
+
 class ToolCallRequest(BaseModel):
     session_id: str = Field(..., description="Unique session identifier for the autonomous buyer agent")
     tool_name: str = Field(..., description="Name of tool to execute")
     arguments: Dict[str, Any] = Field(default_factory=dict, description="Arguments for tool execution")
 
+
 @router.post("/interop/execute")
-def execute_tool(request: ToolCallRequest, db: Session = Depends(get_db)):
+async def execute_tool(
+    raw_request: Request,
+    request: ToolCallRequest,
+    db: Session = Depends(get_db),
+    x_signature_sha256: Optional[str] = Header(None, alias="X-Signature-SHA256"),
+    x_timestamp: Optional[str] = Header(None, alias="X-Timestamp")
+):
     """
     Direct machine-to-machine endpoint for external AI buying agents.
-    Executes merchant tools with full session persistence and audit trail.
+    Secured with optional/enforceable HMAC-SHA256 request signing (AP2 protocol).
     """
+    body_bytes = await raw_request.body()
+
+    # If signature headers are present or HMAC auth is enforced, verify signature
+    if x_signature_sha256 or x_timestamp or REQUIRE_HMAC_AUTH:
+        is_valid, reason = verify_hmac_signature(body_bytes, x_signature_sha256, x_timestamp)
+        if not is_valid:
+            log_action(db, request.session_id, f"interop:auth:{request.tool_name}", DecisionType.blocked, f"Security rejection: {reason}")
+            raise HTTPException(status_code=401, detail={"error": "Unauthorized", "reason": reason})
+
     # Ensure agent session is registered
     session = db.query(DbSession).filter_by(id=request.session_id).first()
     if not session:
