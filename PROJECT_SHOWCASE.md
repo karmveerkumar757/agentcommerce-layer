@@ -330,4 +330,4 @@ cd "D:\Ai Growth and Agentic Commerce\agentcommerce-layer"
 
 ---
 
-*Built with ❤️ for the Razorpay Buildathon — Track 01: AI Growth & Agentic Commerce.*
+*Built for the Razorpay Buildathon — Track 01: AI Growth & Agentic Commerce.*

@@ -139,4 +139,4 @@ Every transaction is bounded and verified before reaching Razorpay test APIs:
 
 ---
 
-*Built with ❤️ for the Razorpay Buildathon — Track 01: AI Growth & Agentic Commerce.*
+*Built for the Razorpay Buildathon — Track 01: AI Growth & Agentic Commerce.*

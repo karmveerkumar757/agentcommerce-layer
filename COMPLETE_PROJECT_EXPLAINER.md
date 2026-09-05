@@ -272,15 +272,15 @@ agentcommerce-layer/
 
 ---
 
-# 🧠 8. The "Brain" and the "Heart" of the Project
+#  8. The "Brain" and the "Heart" of the Project
 
 In system architecture, complex projects have a **"Brain"** (where intelligence and decisions happen) and a **"Heart"** (where value flows and financial trust is enforced):
 
-### 🧠 The Brain: `app/agent/react_loop.py`
+###  The Brain: `app/agent/react_loop.py`
 - **Why it is the Brain:** This file coordinates the **Google Gemini 3.6 Flash LLM** and the **LangGraph ReAct loop**. It takes raw user messages, creates reasoning steps (`Thought`), decides which tool to call (`Action`), observes the result from the vector database (`Observation`), and streams the final answer to the user in real time.
 - **Without it:** The system would be a static database with no intelligence.
 
-### ❤️ The Heart: `app/trust/policy_engine.py` & `app/routers/checkout.py`
+###  The Heart: `app/trust/policy_engine.py` & `app/routers/checkout.py`
 - **Why it is the Heart:** This is where **money and safety meet**. It intercepts every single checkout request, validates the cart against the merchant's trust policies (Max Value, Max Units, Velocity), logs the decision into the audit trail, and pumps the transaction into the **Razorpay test-mode API** to generate the official `order_...` ID.
 - **Without it:** The system would be vulnerable to bot attacks and could not process payments.
 
@@ -325,16 +325,3 @@ In system architecture, complex projects have a **"Brain"** (where intelligence 
 
 ---
 
-# 🎤 10. Summary & Elevator Pitch for Judges
-
-When presenting this project to the Razorpay Buildathon judges or hiring managers, use this crisp 30-second summary:
-
-> *"Hello Judges! E-commerce is rapidly shifting from human clicks to autonomous AI agents shopping on behalf of consumers. But today's merchant websites aren't built for AI agents—they break or are vulnerable to bot hoarding.*
-> 
-> *We built **AgentCommerce Layer**—an autonomous, policy-gated commerce gateway on **Razorpay payment rails**. It provides machine-readable discovery via `/.well-known`, semantic vector search with ChromaDB, conversational reasoning via LangGraph + Gemini, and an active **Trust & Policy Engine** that protects merchants from bot hoarding and budget overruns.*
-> 
-> *Every transaction is cryptographically signed with HMAC-SHA256, verified for idempotency, logged in an immutable audit trail, and completed directly on Razorpay test rails. It's production-ready, fully containerized, and backed by a 100% passing test suite."*
-
----
-
-*Authored with ❤️ for the Razorpay Buildathon — Track 01: AI Growth & Agentic Commerce.*
