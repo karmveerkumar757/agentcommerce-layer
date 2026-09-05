@@ -3,7 +3,10 @@ import json
 import re
 import asyncio
 from dotenv import load_dotenv
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 from app.agent.tools import (
     tool_search_catalog,
     tool_get_product_details,
@@ -28,13 +31,18 @@ Rules:
 """
 
 def get_genai_model():
+    if not genai:
+        return None
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return None
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(
-        model_name=os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-    )
+    try:
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel(
+            model_name=os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        )
+    except Exception:
+        return None
 
 
 def extract_price_constraint(text: str) -> float | None:

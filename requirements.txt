@@ -7,6 +7,7 @@ chromadb
 sentence-transformers
 langchain
 langchain-google-genai
+google-generativeai
 razorpay
 streamlit
 pandas
