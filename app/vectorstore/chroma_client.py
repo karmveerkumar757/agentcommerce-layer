@@ -1,4 +1,6 @@
 import os
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
@@ -14,7 +16,11 @@ CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_data")
 client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 
 collection = client.get_or_create_collection(name="products_collection")
-model = SentenceTransformer('all-MiniLM-L6-v2')
+
+try:
+    model = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
+except Exception:
+    model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def get_product_embedding(text: str) -> list[float]:
     return model.encode(text).tolist()
