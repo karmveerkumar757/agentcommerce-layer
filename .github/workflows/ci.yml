@@ -31,9 +31,9 @@ jobs:
 
     - name: Run End-to-End Test Suite
       env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock_test_key' }}
-        RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID || 'rzp_test_mock' }}
-        RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET || 'mock_secret' }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+        RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
         DATABASE_URL: sqlite:///./agentcommerce.db
         CHROMA_PERSIST_DIR: ./chroma_data
         AP2_HMAC_SECRET: agentcommerce_secret_2026

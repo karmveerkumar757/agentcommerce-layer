@@ -37,7 +37,8 @@ def init_db():
         print("Creating default trust policies...")
         policy1 = TrustPolicy(name="max_cart_value", rule_type="max_amount", threshold_value=10000.0)
         policy2 = TrustPolicy(name="velocity_limit", rule_type="max_orders_per_hour", threshold_value=5.0)
-        db.add_all([policy1, policy2])
+        policy3 = TrustPolicy(name="max_item_quantity", rule_type="max_units", threshold_value=10.0)
+        db.add_all([policy1, policy2, policy3])
             
         db.commit()
         

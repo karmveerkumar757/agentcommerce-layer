@@ -34,7 +34,7 @@ def index_products(products: list[dict]):
             "attributes": json.dumps(p.get("attributes", {}))
         })
     
-    collection.add(
+    collection.upsert(
         ids=ids,
         embeddings=embeddings,
         metadatas=metadatas,

@@ -16,6 +16,12 @@ from app.db.session import SessionLocal
 from app.db.models import Product, TrustPolicy, Order, CartItem, AuditLog, DecisionType
 from app.vectorstore.chroma_client import search_products
 from app.agent.tools import tool_search_catalog, tool_add_to_cart, tool_get_cart, tool_checkout
+from scripts.init_db import init_db
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """Ensure SQLite tables and ChromaDB vector store are seeded before running tests."""
+    init_db()
 
 client = TestClient(app)
 
