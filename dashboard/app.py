@@ -1,14 +1,17 @@
 import os
 import sys
 
-# Ensure project root is at the head of sys.path
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+# Prevent dashboard/app.py from shadowing the root 'app' package
+DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
+while DASHBOARD_DIR in sys.path:
+    sys.path.remove(DASHBOARD_DIR)
 
-# Prevent dashboard/app.py from shadowing the 'app' package
-if "app" in sys.modules and not hasattr(sys.modules["app"], "__path__"):
-    del sys.modules["app"]
+# Ensure project root is always at the head of sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(DASHBOARD_DIR, ".."))
+if not sys.path or sys.path[0] != PROJECT_ROOT:
+    if PROJECT_ROOT in sys.path:
+        sys.path.remove(PROJECT_ROOT)
+    sys.path.insert(0, PROJECT_ROOT)
 
 import json
 import time
