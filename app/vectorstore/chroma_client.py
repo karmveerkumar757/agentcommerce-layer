@@ -1,6 +1,4 @@
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
@@ -17,6 +15,7 @@ client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 
 collection = client.get_or_create_collection(name="products_collection")
 
+# Fast load from local cache if present; gracefully downloads in CI or fresh environments
 try:
     model = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
 except Exception:
