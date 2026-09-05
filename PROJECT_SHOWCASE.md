@@ -203,78 +203,25 @@ Here is the exact progression of how AgentCommerce Layer was built from zero to 
 ## 🔬 5. Deep Dive into Core Technical Modules
 
 ### A. Machine-to-Machine Interoperability Contract
-External AI agents discover the merchant via `GET /.well-known/agent-commerce.json`:
-```json
-{
-  "version": "1.0.0",
-  "merchant": {
-    "name": "Razorpay AgentCommerce Merchant",
-    "currency": "INR",
-    "payment_rails": ["Razorpay-TestMode"],
-    "country": "IN"
-  },
-  "protocols": ["AgentCommerce-v1", "ACP-compatible", "AP2-gated"],
-  "endpoints": {
-    "discovery": "/.well-known/agent-commerce.json",
-    "execute": "/interop/execute"
-  },
-  "tools": [
-    {
-      "name": "search_catalog",
-      "description": "Semantic and keyword search across merchant inventory with optional price limit.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "query": {"type": "string"},
-          "max_price": {"type": "number"}
-        },
-        "required": ["query"]
-      }
-    },
-    {
-      "name": "checkout",
-      "description": "Submit cart to Razorpay test-mode transaction execution through the Trust & Policy Gate."
-    }
-  ],
-  "trust_policies": {
-    "max_cart_value_inr": 10000.0,
-    "max_item_quantity": 10,
-    "audit_logging": true
-  }
-}
-```
+- **Implementation Reference:** [app/routers/interop.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/routers/interop.py) (`get_agent_discovery_manifest()` & `execute_interop_tool()`)
+- **Protocol Standards:** Conforms to emerging agentic commerce conventions (**ACP / AP2 / UAP**)
+- **Live Endpoints:**
+  - `GET /.well-known/agent-commerce.json`: Machine-readable discovery manifest detailing merchant capabilities, currency (`INR`), active payment rails (`Razorpay-TestMode`), callable tool schemas, and public trust thresholds.
+  - `POST /interop/execute`: Headless execution endpoint allowing authenticated external AI agents to invoke tools (`search_catalog`, `get_product_details`, `add_to_cart`, `get_cart`, `checkout`) directly via JSON-RPC/REST without rendering HTML.
 
 ### B. Bounded Trust & Guardrail Verification Engine
-Every checkout request passes through strict, deterministic rules before a Razorpay API call is permitted:
-
-```python
-# app/trust/policy_engine.py
-def check_checkout_policy(db: Session, session_id: str) -> tuple[bool, str]:
-    cart_items = db.query(CartItem).filter_by(session_id=session_id).all()
-    if not cart_items:
-        return False, "Cart is empty."
-
-    # 1. Anti-Hoarding: Check SKU Quantity Cap
-    policy_max_qty = db.query(TrustPolicy).filter_by(name="max_item_quantity").first()
-    max_qty = policy_max_qty.threshold_value if policy_max_qty else 10.0
-    for item in cart_items:
-        if item.quantity > max_qty:
-            return False, f"Quantity ({item.quantity}) exceeds single-order limit of {int(max_qty)}."
-
-    # 2. Budget Control: Check Max Cart Value
-    total_val = sum(item.quantity * db.query(Product).filter_by(id=item.product_id).first().price for item in cart_items)
-    policy_max_val = db.query(TrustPolicy).filter_by(name="max_cart_value").first()
-    max_val = policy_max_val.threshold_value if policy_max_val else 10000.0
-    if total_val > max_val:
-        return False, f"Cart total (₹{total_val:,.2f}) exceeds allowed threshold (₹{max_val:,.2f})."
-
-    # 3. Rate Limiting: Velocity Checks
-    # ... checks recent orders in last hour against velocity_limit ...
-    return True, "Checkout permitted."
-```
+- **Implementation Reference:** [app/trust/policy_engine.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/trust/policy_engine.py) (`check_checkout_policy()`, `verify_ap2_signature()`, `check_idempotency()`)
+- **Module Purpose & Responsibilities:** Intercepts every checkout request and validates it against strict, deterministic security and merchant guardrails before permitting any interaction with Razorpay payment APIs.
+- **Core Guardrail Mechanisms:**
+  1. **Anti-Hoarding SKU Quantity Verification (`max_item_quantity`)**: Analyzes all items in the active session cart against database-backed thresholds (default: 10 units per SKU) to block bulk bot draining.
+  2. **Budget Control & Cart Value Cap (`max_cart_value`)**: Dynamically aggregates total cart value and halts transactions exceeding merchant-defined caps (default: ₹10,000.00), preventing runaway AI agent charges.
+  3. **Rolling Velocity Rate Limiter (`velocity_limit`)**: Queries recent order history within a 60-minute window for the session to prevent rapid-fire brute-force transactions.
+  4. **Cryptographic AP2 HMAC-SHA256 Authentication (`verify_ap2_signature`)**: Validates request signatures against shared merchant secrets and rejects requests outside a 300-second freshness window to eliminate replay attacks.
+  5. **Idempotency Guarantee (`Idempotency-Key`)**: Enforces idempotency tracking in SQLite to ensure retried network calls do not create duplicate orders or bill multiple times.
 
 ### C. Explainable Immutable Audit Logging
-Whenever an action occurs, a structured log entry is committed:
+- **Implementation Reference:** [app/trust/audit_logger.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/trust/audit_logger.py) (`log_agent_action()`) and [app/db/models.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/db/models.py) (`AuditLog` ORM model)
+- **Module Purpose & Responsibilities:** Commits a persistent, tamper-evident record of every agent action, tool invocation, and policy decision to SQLite with full explainability. Accessible via the Merchant Intelligence Dashboard in [dashboard/app.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/dashboard/app.py) with 1-click CSV/JSON compliance export.
 
 | Timestamp | Session ID | Action | Decision | Explainable Grounding / Reason |
 | :--- | :--- | :--- | :--- | :--- |
@@ -282,6 +229,13 @@ Whenever an action occurs, a structured log entry is committed:
 | `2026-09-03 04:06:50` | `agent_sim_01` | `interop:add_to_cart` | <span style="color:#10b981;font-weight:bold;">ALLOWED</span> | Added 1 of prod_001 |
 | `2026-09-02 09:33:58` | `bot_hoarding_99` | `checkout_attempt` | <span style="color:#ef4444;font-weight:bold;">BLOCKED</span> | Quantity for 'TrailRunner Shoes' (50 units) exceeds maximum single-order limit of 10. |
 | `2026-09-02 09:33:58` | `high_val_test` | `checkout_attempt` | <span style="color:#ef4444;font-weight:bold;">BLOCKED</span> | Cart total (₹17,998.00) exceeds maximum allowed transaction threshold (₹10,000.00). |
+
+### D. Conversational ReAct Loop with Gemini
+- **Implementation Reference:** [app/agent/langgraph_agent.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/agent/langgraph_agent.py) (`create_agent_graph()`, `run_agent_stream()`) and [app/agent/tools.py](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/agent/tools.py)
+- **Module Purpose & Responsibilities:** Powers the natural language shopping experience for end-users and consumer agents:
+  - **Reasoning Engine:** Utilizes Google Gemini (`gemini-2.5-flash` / `gemini-1.5-flash`) structured through a LangGraph cyclic state graph (`agent` -> `tools` -> `agent`).
+  - **Tool Schemas:** Invokes typed Pydantic tools for ChromaDB vector search, item inspection, cart manipulation, and Razorpay checkout submission.
+  - **Real-Time Streaming:** Emits Server-Sent Events (SSE) to the Buyer Chat Widget ([app/static/index.html](file:///d:/Ai%20Growth%20and%20Agentic%20Commerce/agentcommerce-layer/app/static/index.html)), rendering live Thought, Action, and Observation tokens as the agent reasons.
 
 ---
 
@@ -293,11 +247,11 @@ The entire system is backed by an automated integration test suite in [tests/tes
 ============================= test session starts =============================
 platform win32 -- Python 3.12.7, pytest-9.1.1, pluggy-1.6.0
 rootdir: D:\Ai Growth and Agentic Commerce\agentcommerce-layer
-collected 5 items
+collected 7 items
 
-tests\test_end_to_end.py .....                                           [100%]
+tests\test_end_to_end.py .......                                         [100%]
 
-============================= 5 passed in 59.81s ==============================
+============================= 7 passed in 62.15s ==============================
 ```
 
 ### Verified Test Scenarios:
@@ -306,6 +260,8 @@ tests\test_end_to_end.py .....                                           [100%]
 3. `test_policy_gate_allow`: Legitimate cart checkout passing trust policies and creating a Razorpay test order.
 4. `test_policy_gate_block`: Cart exceeding threshold triggering deterministic policy blocking and audit logging.
 5. `test_interop_endpoint`: Autonomous machine-to-machine discovery and tool execution pipeline.
+6. `test_ap2_hmac_authentication`: Cryptographic AP2 HMAC-SHA256 signature verification and replay prevention.
+7. `test_idempotency_checkout`: Idempotency-Key deduplication preventing duplicate charges.
 
 ---
 
