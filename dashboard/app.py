@@ -18,8 +18,8 @@ import requests
 import streamlit as st
 
 # Direct Database & Model Imports
-from app.db.session import SessionLocal
-from app.db.models import (
+from app.db.session import SessionLocal  # type: ignore # pyrefly: ignore [missing-import]
+from app.db.models import (  # type: ignore # pyrefly: ignore [missing-import]
     Session as DbSession,
     Order,
     AuditLog,
@@ -31,7 +31,7 @@ from app.db.models import (
     CartItem
 )
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 # -------------------------------------------------------------
 # Streamlit Page Configuration
@@ -125,13 +125,16 @@ st.markdown("""
 def check_system_health():
     backend_ok = False
     manifest_data = None
-    try:
-        r = requests.get(f"{API_URL}/.well-known/agent-commerce.json", timeout=1.5)
-        if r.status_code == 200:
-            backend_ok = True
-            manifest_data = r.json()
-    except Exception:
-        backend_ok = False
+    endpoints_to_try = [API_URL, "http://127.0.0.1:8000", "http://localhost:8000"]
+    for base in dict.fromkeys(endpoints_to_try):
+        try:
+            r = requests.get(f"{base}/.well-known/agent-commerce.json", timeout=2.0)
+            if r.status_code == 200:
+                backend_ok = True
+                manifest_data = r.json()
+                break
+        except Exception:
+            continue
     return backend_ok, manifest_data
 
 backend_online, manifest_info = check_system_health()
@@ -706,7 +709,7 @@ with tabs[3]:
 
                     # Index in ChromaDB
                     try:
-                        from app.vectorstore.chroma_client import index_products
+                        from app.vectorstore.chroma_client import index_products  # type: ignore # pyrefly: ignore [missing-import]
                         index_products([{
                             "id": p_id,
                             "name": p_name,

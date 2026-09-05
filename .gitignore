@@ -36,3 +36,12 @@ htmlcov/
 
 # Logs
 *.log
+
+# Video Recording Scripts & Media (Keep local for demo recording)
+VIDEO_DEMO_SCRIPT.md
+VIDEO_RECORDING_SCREEN_GUIDE.md
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3

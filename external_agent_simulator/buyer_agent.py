@@ -9,7 +9,7 @@ import requests
 # Ensure UTF-8 output encoding for Windows terminal
 sys.stdout.reconfigure(encoding='utf-8')
 
-BASE_URL = os.getenv("API_URL", "http://localhost:8000")
+BASE_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 HMAC_SECRET = os.getenv("AP2_HMAC_SECRET", "agentcommerce_secret_2026")
 
 def signed_post(endpoint: str, payload: dict, custom_secret: str = None) -> requests.Response:
