@@ -1,6 +1,10 @@
+import os
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
 import chromadb
 from sentence_transformers import SentenceTransformer
-import os
 from dotenv import load_dotenv
 import json
 

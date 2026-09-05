@@ -596,7 +596,7 @@
 
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
-        bubble.textContent = '...';
+        bubble.innerHTML = '<span style="opacity:0.75;display:inline-flex;align-items:center;gap:6px;">⚡ Searching vector catalog & reasoning...</span>';
 
         contentWrapper.appendChild(reasoningWrapper);
         contentWrapper.appendChild(bubble);
@@ -633,17 +633,20 @@
                                 step.className = 'trace-item';
                                 step.innerHTML = `<span class="trace-tag thought">Thought</span> <span>${data.content}</span>`;
                                 stepsContainer.appendChild(step);
+                                bubble.innerHTML = '<span style="opacity:0.75;display:inline-flex;align-items:center;gap:6px;">🧠 Reasoning over catalog & constraints...</span>';
                             } else if (data.type === 'action') {
                                 const step = document.createElement('div');
                                 step.className = 'trace-item';
                                 step.innerHTML = `<span class="trace-tag action">Action</span> <span>Calling <code>${data.tool}</code> with ${JSON.stringify(data.args)}</span>`;
                                 stepsContainer.appendChild(step);
+                                bubble.innerHTML = `<span style="opacity:0.85;display:inline-flex;align-items:center;gap:6px;">🔍 Searching catalog via <code>${data.tool}</code>...</span>`;
                             } else if (data.type === 'observation') {
                                 const step = document.createElement('div');
                                 step.className = 'trace-item';
                                 const obsSnippet = typeof data.content === 'string' ? data.content.substring(0, 140) + '...' : JSON.stringify(data.content);
                                 step.innerHTML = `<span class="trace-tag observation">Observation</span> <span>${obsSnippet}</span>`;
                                 stepsContainer.appendChild(step);
+                                bubble.innerHTML = '<span style="opacity:0.85;display:inline-flex;align-items:center;gap:6px;">✨ Structuring verified product recommendation...</span>';
                             } else if (data.type === 'response') {
                                 bubble.innerHTML = formatMarkdown(data.content);
                             }

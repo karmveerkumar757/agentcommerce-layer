@@ -71,24 +71,36 @@ def build_messages_history(message: str, chat_history: list = None):
     return messages
 
 
+# Cached LLM client
+_cached_llm = None
+
+def get_llm():
+    global _cached_llm
+    if _cached_llm is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+            _cached_llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                google_api_key=api_key,
+                max_retries=2,
+                timeout=15.0
+            )
+    return _cached_llm
+
 def run_agent(session_id: str, message: str, chat_history: list = None) -> dict:
     """
     Executes the ReAct agent with Gemini 3.6 Flash and returns the final response
     along with the full Thought/Action/Observation reasoning trace.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    llm = get_llm()
+    if not llm:
         return {
             "response": "Error: GEMINI_API_KEY is not set in environment.",
             "trace": ["Error: GEMINI_API_KEY missing"]
         }
 
     try:
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-3.6-flash",
-            google_api_key=api_key,
-            temperature=0.2
-        )
         tools = create_session_tools(session_id)
         agent = create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
 
@@ -131,24 +143,18 @@ async def stream_agent(session_id: str, message: str, chat_history: list = None)
     Asynchronously streams live Thought, Action, and Observation events
     from the LangGraph ReAct loop as Server-Sent Events (SSE).
     """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    llm = get_llm()
+    if not llm:
         yield f"data: {json.dumps({'type': 'error', 'message': 'GEMINI_API_KEY not configured'})}\n\n"
         return
 
     try:
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-3.6-flash",
-            google_api_key=api_key,
-            temperature=0.2
-        )
         tools = create_session_tools(session_id)
         agent = create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
         messages = build_messages_history(message, chat_history)
 
         # Initial thought event
-        yield f"data: {json.dumps({'type': 'thought', 'content': 'Analyzing customer request and reasoning over merchant catalog...'})}\n\n"
-        await asyncio.sleep(0.05)
+        yield f"data: {json.dumps({'type': 'thought', 'content': 'Analyzing customer request and searching merchant catalog...'})}\n\n"
 
         final_answer = ""
         full_trace = []
@@ -177,7 +183,6 @@ async def stream_agent(session_id: str, message: str, chat_history: list = None)
                                 tool_args = tc.get("args", {})
                                 full_trace.append(f"Action: {tool_name} with {json.dumps(tool_args)}")
                                 yield f"data: {json.dumps({'type': 'action', 'tool': tool_name, 'args': tool_args})}\n\n"
-                                await asyncio.sleep(0.05)
                         if m.content:
                             content_str = m.content if isinstance(m.content, str) else " ".join([c.get("text", "") for c in m.content if isinstance(c, dict)])
                             if content_str.strip():
@@ -188,7 +193,6 @@ async def stream_agent(session_id: str, message: str, chat_history: list = None)
                         tool_label = getattr(m, "name", "tool")
                         full_trace.append(f"Observation: {obs_content}")
                         yield f"data: {json.dumps({'type': 'observation', 'tool': tool_label, 'content': obs_content})}\n\n"
-                        await asyncio.sleep(0.05)
 
         # Emit final response
         if not final_answer:
@@ -198,3 +202,4 @@ async def stream_agent(session_id: str, message: str, chat_history: list = None)
 
     except Exception as e:
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
